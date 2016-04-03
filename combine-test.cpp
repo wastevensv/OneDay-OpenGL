@@ -20,16 +20,16 @@
 
 float bg_vertices[] = {
 //  Position            Texture
-     0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // Near
+     0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // Near
     -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // Far
-     0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // Far
+     0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // Far
      1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // Near
 
 //  Position            Texture
-    -1.0f,  0.0f,  1.0f, 0.0f, 1.0f, // Top
-     0.0f, -1.0f,  1.0f, 1.0f, 1.0f, // Top
-     0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // Bottom
-    -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // Bottom
+    -1.0f,  0.0f,  1.0f, 1.0f, 1.0f, // Top
+     0.0f, -1.0f,  1.0f, 0.0f, 1.0f, // Top
+     0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // Bottom
+    -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // Bottom
 };
 
 std::string readFile(const char *filePath) {
