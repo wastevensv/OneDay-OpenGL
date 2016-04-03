@@ -18,18 +18,32 @@
 #include <fstream>
 #include <streambuf>
 
+#define BG_ID 0
+#define FG_ID 1
+
+#define POS_ID 0
+#define TEX_ID 1
+
 float bg_vertices[] = {
 //  Position            Texture
-     0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // Near
-    -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // Far
-     0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // Far
-     1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // Near
+     0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // Near Right
+    -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // Far Right
+     0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // Far Left
+     
+     0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // Near Right
+     1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // Near Left
+     0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // Far Left
+};
 
+float fg_vertices[] = {
 //  Position            Texture
-    -1.0f,  0.0f,  1.0f, 1.0f, 1.0f, // Top
-     0.0f, -1.0f,  1.0f, 0.0f, 1.0f, // Top
-     0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // Bottom
-    -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // Bottom
+    -1.0f,  0.0f,  1.0f, 1.0f, 1.0f, // Top Right
+     0.0f, -1.0f,  1.0f, 0.0f, 1.0f, // Top Left
+     0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // Bottom Left
+
+    -1.0f,  0.0f,  1.0f, 1.0f, 1.0f, // Top Right
+    -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // Bottom Right
+     0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // Bottom Left
 };
 
 std::string readFile(const char *filePath) {
@@ -81,33 +95,60 @@ int main()
 
     // --- Application Specific Setup ---
     
-    // Create Vertex Array Object 2
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
     
+    // Create Vertex Array Object
+    GLuint fg_vao;
+    glGenVertexArrays(1, &fg_vao);
+    glBindVertexArray(fg_vao);
     
-    // Create Vertex Buffer Object 2
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // Create Vertex Buffer Object
+    GLuint fg_vbo;
+    glGenBuffers(1, &fg_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, fg_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fg_vertices), fg_vertices, GL_STATIC_DRAW);
+    
+    glEnableVertexAttribArray(POS_ID);
+    glVertexAttribPointer(POS_ID, 3, GL_FLOAT, GL_FALSE,
+                 5*sizeof(GLfloat), 0);
+
+    glEnableVertexAttribArray(TEX_ID);
+    glVertexAttribPointer(TEX_ID, 2, GL_FLOAT, GL_FALSE,
+                 5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
+
+    // Create Vertex Array Object
+    GLuint bg_vao;
+    glGenVertexArrays(1, &bg_vao);
+    glBindVertexArray(bg_vao);
+
+    // Create Vertex Buffer Object
+    GLuint bg_vbo;
+    glGenBuffers(1, &bg_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, bg_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(bg_vertices), bg_vertices, GL_STATIC_DRAW);
     
+    glEnableVertexAttribArray(POS_ID);
+    glVertexAttribPointer(POS_ID, 3, GL_FLOAT, GL_FALSE,
+                 5*sizeof(GLfloat), 0);
 
-    // Create element array 2
-    GLuint ebo;
-    glGenBuffers(1, &ebo);
+    glEnableVertexAttribArray(TEX_ID);
+    glVertexAttribPointer(TEX_ID, 2, GL_FLOAT, GL_FALSE,
+                 5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
 
-    GLuint bg_elements[] = {
-        0, 1, 2,
-        0, 3, 2,
-        
-        4, 5, 6,
-        4, 7, 6,
-    };
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(bg_elements), bg_elements, GL_STATIC_DRAW);
+    // Create element array
+//    GLuint ebo;
+//    glGenBuffers(1, &ebo);
+
+//    GLuint bg_elements[] = {
+//        0, 1, 2,
+//        0, 3, 2,
+//        
+//        4, 5, 6,
+//        4, 7, 6,
+//    };
+
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(bg_elements), bg_elements, GL_STATIC_DRAW);
 
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -161,6 +202,9 @@ int main()
     glLinkProgram(colorShaderProgram);
     glUseProgram(colorShaderProgram);
 
+    GLint fg_posAttrib = glGetAttribLocation(colorShaderProgram, "position");
+    
+
     GLint colorPosAttrib = glGetAttribLocation(colorShaderProgram, "position");
     glEnableVertexAttribArray(colorPosAttrib);
     glVertexAttribPointer(colorPosAttrib, 3, GL_FLOAT, GL_FALSE,
@@ -170,7 +214,7 @@ int main()
     glEnableVertexAttribArray(colorTexAttrib);
     glVertexAttribPointer(colorTexAttrib, 2, GL_FLOAT, GL_FALSE,
                  5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
-
+    
     // Make blank shader program.
     GLuint blankShaderProgram = glCreateProgram();
     glAttachShader(blankShaderProgram, vertexShader);
@@ -219,7 +263,7 @@ int main()
     while(!glfwWindowShouldClose(window))
     {
         // Reset
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
        
 
@@ -234,13 +278,23 @@ int main()
         glGenerateMipmap(GL_TEXTURE_2D);
 
 
-        // Draw Baseboard
         glm::mat4 model;
-        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
         
-        // Draw Axis
+        // Draw Baseboard
+        glUseProgram(blankShaderProgram);
+        glBindVertexArray(fg_vao);
+        model = glm::mat4();
+        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        // Draw Backboard
+        //glUseProgram(colorShaderProgram);
+        glBindVertexArray(bg_vao);
+        model = glm::mat4();
+        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        
         //Display
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -251,16 +305,16 @@ int main()
     glDeleteShader(colorFrag);
     glDeleteShader(vertexShader);
 
-    glDeleteBuffers(1, &ebo);
-    glDeleteBuffers(1, &vbo);
+//    glDeleteBuffers(1, &ebo);
+    glDeleteBuffers(1, &fg_vbo);
 
-    glDeleteVertexArrays(1, &vao);
+    glDeleteVertexArrays(1, &fg_vao);
     
-    //SOIL_free_image_data(image);
+//    SOIL_free_image_data(image);
     //glDeleteBuffers(1, &fg_ebo);
-    //glDeleteBuffers(1, &fg_vbo);
+    glDeleteBuffers(1, &bg_vbo);
 
-    //glDeleteVertexArrays(1, &fg_vao);
+    glDeleteVertexArrays(1, &bg_vao);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
