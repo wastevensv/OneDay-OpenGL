@@ -368,12 +368,12 @@ int main()
         // Draw Axises
         glUseProgram(colorShaderProgram);
 
-        Vector<Point> points = findObjects(cameraFrame);
-        
-        if(points.size() != 0) {
-             float xco = ((points[0].x/cameraFrame.cols-1)*2);
-             float yco = ((points[0].y/cameraFrame.rows-1)*2);
-             cerr <<"#"<< points[0].x << ", "<<  points[0].y << endl;
+        Vector<float> points = findObject(cameraFrame);
+        cerr << points[0] << "," << points[1] << endl;
+        if(points.size() == 2) {
+             float xco = ((points[0]/cameraFrame.cols-1)*2);
+             float yco = ((points[1]/cameraFrame.rows-1)*2);
+             cerr <<"#"<< points[0] << ", "<<  points[1] << endl;
              cerr <<"!"<< xco << ", "<<  yco << endl;
              aModel = glm::translate(glm::mat4(1.0f), glm::vec3(-xco, -yco, 0.0f));
         } 

@@ -72,17 +72,17 @@ Vector<float> findObject(const Mat& inputImage) {
         if(area > maxarea) {
             maxarea = area;
             Moments M = moments(contours[i]);
-            cx = (((M.m10/M.m00)/inputImage.size().width)*2)-1;
-            cy = (((M.m01/M.m00)/inputImage.size().width)*2)-1;
+            cx = (M.m10/M.m00);
+            cy = (M.m01/M.m00);
             found = true;
         }
     }
     //Show in a window
     if(found) {
         cerr << cx << ", " << cy << endl;
-        return vector<float>(cx,cy);
+        return Vector<float>(cx,cy);
     } else
-        return vector<float>();
+        return Vector<float>();
 }
 
 Vector<Point> findObjects(const Mat& inputImage) {
