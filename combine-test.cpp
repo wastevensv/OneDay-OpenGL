@@ -24,8 +24,8 @@
 #define POS_ID 0
 #define TEX_ID 1
 
-float bg_vertices[] = {
-//  Position            Texture
+float fg_vertices[] = {
+//  Position             Texture
      0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // Near Right
     -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // Far Right
      0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // Far Left
@@ -35,8 +35,8 @@ float bg_vertices[] = {
      0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // Far Left
 };
 
-float fg_vertices[] = {
-//  Position            Texture
+float bg_vertices[] = {
+//  Position             Texture
     -1.0f,  0.0f,  1.0f, 1.0f, 1.0f, // Top Right
      0.0f, -1.0f,  1.0f, 0.0f, 1.0f, // Top Left
      0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // Bottom Left
@@ -44,6 +44,18 @@ float fg_vertices[] = {
     -1.0f,  0.0f,  1.0f, 1.0f, 1.0f, // Top Right
     -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // Bottom Right
      0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // Bottom Left
+};
+
+float axis_verticies[] = {
+// Position              Color
+     0.0f,  0.0f,  0.0f, 1.0f, 0.0f,  0.0f, // Origin
+     1.0f,  0.0f,  0.0f, 1.0f, 0.0f,  0.0f, // X Line
+    
+     0.0f,  0.0f,  0.0f, 0.0f, 1.0f,  0.0f, // Origin
+     0.0f,  1.0f,  0.0f, 0.0f, 1.0f,  0.0f, // Y Line
+    
+     0.0f,  0.0f,  0.0f, 0.0f, 0.0f,  1.0f, // Origin
+     0.0f,  0.0f,  1.0f, 0.0f, 0.0f,  1.0f, // Z Line
 };
 
 std::string readFile(const char *filePath) {
@@ -96,12 +108,12 @@ int main()
     // --- Application Specific Setup ---
     
     
-    // Create Vertex Array Object
+    // Create FG Vertex Array Object
     GLuint fg_vao;
     glGenVertexArrays(1, &fg_vao);
     glBindVertexArray(fg_vao);
     
-    // Create Vertex Buffer Object
+    // Create FG Vertex Buffer Object
     GLuint fg_vbo;
     glGenBuffers(1, &fg_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, fg_vbo);
@@ -115,12 +127,12 @@ int main()
     glVertexAttribPointer(TEX_ID, 2, GL_FLOAT, GL_FALSE,
                  5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
 
-    // Create Vertex Array Object
+    // Create BG Vertex Array Object
     GLuint bg_vao;
     glGenVertexArrays(1, &bg_vao);
     glBindVertexArray(bg_vao);
 
-    // Create Vertex Buffer Object
+    // Create BG Vertex Buffer Object
     GLuint bg_vbo;
     glGenBuffers(1, &bg_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, bg_vbo);
@@ -135,49 +147,49 @@ int main()
                  5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
 
 
-    // Create element array
-//    GLuint ebo;
-//    glGenBuffers(1, &ebo);
-
-//    GLuint bg_elements[] = {
-//        0, 1, 2,
-//        0, 3, 2,
-//        
-//        4, 5, 6,
-//        4, 7, 6,
-//    };
-
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(bg_elements), bg_elements, GL_STATIC_DRAW);
-
-    // Compile vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    // Compile color vertex shader
+    GLuint prettyVert = glCreateShader(GL_VERTEX_SHADER);
     const char *vertexSource = readFile("3dvert.glsl").c_str();
 
-    glShaderSource(vertexShader, 1, &vertexSource, NULL);
-    glCompileShader(vertexShader);
-    GLint vStatus;
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vStatus);
-    if(vStatus != GL_TRUE) {
+    glShaderSource(prettyVert, 1, &vertexSource, NULL);
+    glCompileShader(prettyVert);
+    GLint cvStatus;
+    glGetShaderiv(prettyVert, GL_COMPILE_STATUS, &cvStatus);
+    if(cvStatus != GL_TRUE) {
         char buffer[512];
-        glGetShaderInfoLog(vertexShader, 512, NULL, buffer);
+        glGetShaderInfoLog(prettyVert, 512, NULL, buffer);
         std::cerr << buffer << std::endl;
         return 3;
     }
 
     // Compile color fragment shader
-    GLuint colorFrag = glCreateShader(GL_FRAGMENT_SHADER);
-    const char* fragmentSource = readFile("colorfrag.glsl").c_str();
+    GLuint prettyFrag = glCreateShader(GL_FRAGMENT_SHADER);
+    const char* fragmentSource = readFile("prettyfrag.glsl").c_str();
 
-    glShaderSource(colorFrag, 1, &fragmentSource, NULL);
-    glCompileShader(colorFrag);
+    glShaderSource(prettyFrag, 1, &fragmentSource, NULL);
+    glCompileShader(prettyFrag);
     GLint fStatus;
-    glGetShaderiv(colorFrag, GL_COMPILE_STATUS, &fStatus);
+    glGetShaderiv(prettyFrag, GL_COMPILE_STATUS, &fStatus);
     if(fStatus != GL_TRUE) {
         char buffer[512];
-        glGetShaderInfoLog(colorFrag, 512, NULL, buffer);
+        glGetShaderInfoLog(prettyFrag, 512, NULL, buffer);
         std::cerr << buffer << std::endl;
         return 4;
+    }
+
+    // Compile blank vertex shader
+    GLuint blankVert = glCreateShader(GL_VERTEX_SHADER);
+    const char *blankVertexSource = readFile("3dvert.glsl").c_str();
+
+    glShaderSource(blankVert, 1, &blankVertexSource, NULL);
+    glCompileShader(blankVert);
+    GLint bvStatus;
+    glGetShaderiv(blankVert, GL_COMPILE_STATUS, &bvStatus);
+    if(bvStatus != GL_TRUE) {
+        char buffer[512];
+        glGetShaderInfoLog(blankVert, 512, NULL, buffer);
+        std::cerr << buffer << std::endl;
+        return 3;
     }
 
     // Compile blank fragment shader
@@ -194,62 +206,39 @@ int main()
         return 5;
     }
 
-    // Make color shader program.
+    // Make blank shader program.
     GLuint colorShaderProgram = glCreateProgram();
-    glAttachShader(colorShaderProgram, vertexShader);
-    glAttachShader(colorShaderProgram, colorFrag);
+    glAttachShader(colorShaderProgram, prettyVert);
+    glAttachShader(colorShaderProgram, prettyFrag);
     glBindFragDataLocation(colorShaderProgram, 0, "outColor");
     glLinkProgram(colorShaderProgram);
     glUseProgram(colorShaderProgram);
-
-    GLint fg_posAttrib = glGetAttribLocation(colorShaderProgram, "position");
-    
-
-    GLint colorPosAttrib = glGetAttribLocation(colorShaderProgram, "position");
-    glEnableVertexAttribArray(colorPosAttrib);
-    glVertexAttribPointer(colorPosAttrib, 3, GL_FLOAT, GL_FALSE,
-                 5*sizeof(GLfloat), 0);
-
-    GLint colorTexAttrib = glGetAttribLocation(colorShaderProgram, "texcoord");
-    glEnableVertexAttribArray(colorTexAttrib);
-    glVertexAttribPointer(colorTexAttrib, 2, GL_FLOAT, GL_FALSE,
-                 5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
     
     // Make blank shader program.
     GLuint blankShaderProgram = glCreateProgram();
-    glAttachShader(blankShaderProgram, vertexShader);
+    glAttachShader(blankShaderProgram, blankVert);
     glAttachShader(blankShaderProgram, blankFrag);
     glBindFragDataLocation(blankShaderProgram, 0, "outColor");
     glLinkProgram(blankShaderProgram);
     glUseProgram(blankShaderProgram);
 
-    GLint blankPosAttrib = glGetAttribLocation(blankShaderProgram, "position");
-    glEnableVertexAttribArray(blankPosAttrib);
-    glVertexAttribPointer(blankPosAttrib, 3, GL_FLOAT, GL_FALSE,
-                 5*sizeof(GLfloat), 0);
-
-    GLint blankTexAttrib = glGetAttribLocation(blankShaderProgram, "texcoord");
-    glEnableVertexAttribArray(blankTexAttrib);
-    glVertexAttribPointer(blankTexAttrib, 2, GL_FLOAT, GL_FALSE,
-                 5*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
-    
     // Setup view
     glm::mat4 view = glm::lookAt(
                    glm::vec3( 1.0f,  1.0f,  1.0f),
                    glm::vec3( 0.0f,  0.0f,  0.5f),
                    glm::vec3( 0.0f,  0.0f,  1.0f)
                    );
-    GLint uniView = glGetUniformLocation(colorShaderProgram, "view");
-    glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
-
-    // Setup transformation
-    GLint uniModel = glGetUniformLocation(colorShaderProgram, "model");
-
-    // Setup projection
     glm::mat4 proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 1.0f, 10.0f);
-    GLint uniProj = glGetUniformLocation(colorShaderProgram, "proj");
-    glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
-    
+    glm::mat4 model = glm::mat4();
+
+    glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "view" ), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "proj" ), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+    glUniformMatrix4fv(glGetUniformLocation(colorShaderProgram, "view" ), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(colorShaderProgram, "proj" ), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(colorShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
     // Create texture
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -282,16 +271,21 @@ int main()
         
         // Draw Baseboard
         glUseProgram(blankShaderProgram);
+        glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
+        glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
         glBindVertexArray(fg_vao);
-        model = glm::mat4();
-        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
 
         // Draw Backboard
-        //glUseProgram(colorShaderProgram);
+        glUseProgram(colorShaderProgram);
+        glUniformMatrix4fv(glGetUniformLocation(colorShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(colorShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
+        glUniformMatrix4fv(glGetUniformLocation(colorShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        
         glBindVertexArray(bg_vao);
-        model = glm::mat4();
-        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
         
@@ -302,19 +296,20 @@ int main()
 
     // --- Cleanup/Shutdown ---
     glDeleteProgram(colorShaderProgram);
-    glDeleteShader(colorFrag);
-    glDeleteShader(vertexShader);
-
-//    glDeleteBuffers(1, &ebo);
-    glDeleteBuffers(1, &fg_vbo);
-
-    glDeleteVertexArrays(1, &fg_vao);
+    glDeleteProgram(blankShaderProgram);
     
-//    SOIL_free_image_data(image);
-    //glDeleteBuffers(1, &fg_ebo);
+    glDeleteShader(prettyFrag);
+    glDeleteShader(prettyVert);
+
+    glDeleteShader(blankVert);
+    glDeleteShader(blankFrag);
+
+    glDeleteBuffers(1, &fg_vbo);
     glDeleteBuffers(1, &bg_vbo);
 
+    glDeleteVertexArrays(1, &fg_vao);
     glDeleteVertexArrays(1, &bg_vao);
+    
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
