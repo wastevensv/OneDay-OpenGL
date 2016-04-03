@@ -7,6 +7,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "cvHelper.hpp"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -307,9 +309,9 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
 
 
+    glm::mat4 aModel = glm::mat4();
     glEnable(GL_DEPTH_TEST);
     // --- Main Loop ---
     while(!glfwWindowShouldClose(window))
@@ -322,28 +324,19 @@ int main()
         auto t_now = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
 
-        // Capture frame
-        cv::Mat cameraFrame;
-        stream1.read(cameraFrame);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cameraFrame.cols, cameraFrame.rows, 0, GL_BGR,
-                                  GL_UNSIGNED_BYTE, cameraFrame.data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-
         glm::mat4 model;
         
-        // Draw Axis
-        glUseProgram(colorShaderProgram);
-        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
-        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-        
-        glBindVertexArray(axis_vao);
-        glDrawArrays(GL_LINES, 0, 6);
-        glBindVertexArray(0);
-        
+        int width, height;
+        unsigned char* image = SOIL_load_image("texture.png", &width, &height, 0, SOIL_LOAD_RGB);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        SOIL_free_image_data(image);
+
         // Draw Backboard
         glUseProgram(prettyShaderProgram);
+
+        model = glm::mat4();
+
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -352,14 +345,45 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
         
+        // Capture frame
+        cv::Mat cameraFrame;
+        stream1.read(cameraFrame);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cameraFrame.cols, cameraFrame.rows, 0, GL_BGR,
+                                  GL_UNSIGNED_BYTE, cameraFrame.data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
         // Draw Baseboard
         glUseProgram(blankShaderProgram);
+        
+        model = glm::mat4();
+        
         glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
         glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
         glBindVertexArray(fg_vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+
+        // Draw Axises
+        glUseProgram(colorShaderProgram);
+
+        Vector<Point> points = findObjects(cameraFrame);
+        
+        if(points.size() != 0) {
+             float xco = ((points[0].x/cameraFrame.cols-1)*2);
+             float yco = ((points[0].y/cameraFrame.rows-1)*2);
+             cerr <<"#"<< points[0].x << ", "<<  points[0].y << endl;
+             cerr <<"!"<< xco << ", "<<  yco << endl;
+             aModel = glm::translate(glm::mat4(1.0f), glm::vec3(-xco, -yco, 0.0f));
+        } 
+        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
+        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(aModel));
+        
+        glBindVertexArray(axis_vao);
+
+        glDrawArrays(GL_LINES, 0, 6);
         glBindVertexArray(0);
 
         //Display
