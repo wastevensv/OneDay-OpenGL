@@ -25,6 +25,15 @@
 #define POS_ID 0
 #define TEX_ID 1
 
+bool loadOBJ(
+   const char * path,
+       std::vector < glm::vec3 > & out_vertices,
+       std::vector < glm::vec2 > & out_uvs,
+       std::vector < glm::vec3 > & out_normals
+    );
+
+
+
 float fg_vertices[] = {
 //  Position             Texture
      0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // Near Right
@@ -107,8 +116,18 @@ int main()
     glewInit();
 
     // --- Application Specific Setup ---
-    
-    
+
+    // Read our .obj file
+    std::vector< glm::vec3 > obj_vertices;
+    std::vector< glm::vec2 > obj_uvs;
+    std::vector< glm::vec3 > obj_normals; // Won't be used at the moment.
+    bool res = loadOBJ("../model.obj", obj_vertices, obj_uvs, obj_normals);
+
+    GLuint obj_vao;
+    glGenVertexArrays(1, &obj_vao);
+    glBindVertexArray(obj_vao);
+    glBufferData(GL_ARRAY_BUFFER, obj_vertices.size() * sizeof(glm::vec3), &obj_vertices[0], GL_STATIC_DRAW);
+
     // Create FG Vertex Array Object
     GLuint fg_vao;
     glGenVertexArrays(1, &fg_vao);
@@ -156,7 +175,7 @@ int main()
     GLuint axis_vbo;
     glGenBuffers(1, &axis_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, axis_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(axis_vertices), axis_vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(axis_vertices), axis_vertices, GL_DYNAMIC_DRAW);
     
     glEnableVertexAttribArray(POS_ID);
     glVertexAttribPointer(POS_ID, 3, GL_FLOAT, GL_FALSE,
@@ -334,16 +353,33 @@ int main()
         
         // Draw Axis
         glUseProgram(colorShaderProgram);
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.25f,-0.25f,0.0f));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
         
         glBindVertexArray(axis_vao);
+        axis_vertices[6] = sin(time)/2;
+        axis_vertices[19] = sin(time)/2;
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(axis_vertices), axis_vertices);
         glDrawArrays(GL_LINES, 0, 6);
         glBindVertexArray(0);
         
+        // Draw Axis
+        glUseProgram(blankShaderProgram);
+        model = glm::mat4();
+        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
+        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+        glBindVertexArray(obj_vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        
+
         // Draw Backboard
         glUseProgram(prettyShaderProgram);
+        model = glm::mat4();
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
         glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -354,6 +390,7 @@ int main()
         
         // Draw Baseboard
         glUseProgram(blankShaderProgram);
+        model = glm::mat4();
         glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
         glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -392,4 +429,65 @@ int main()
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
+}
+
+bool loadOBJ(
+        const char * path,
+        std::vector < glm::vec3 > & out_vertices,
+        std::vector < glm::vec2 > & out_uvs,
+        std::vector < glm::vec3 > & out_normals
+    ) {
+    std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
+    std::vector< glm::vec3 > temp_vertices;
+    std::vector< glm::vec2 > temp_uvs;
+    std::vector< glm::vec3 > temp_normals;
+
+    FILE * file = fopen(path, "r");
+    if( file == NULL ){
+       printf("Impossible to open the file !\n");
+       return false;
+    }
+    while( 1 ){
+        char lineHeader[128];
+        // read the first word of the line
+        int res = fscanf(file, "%s", lineHeader);
+        if (res == EOF)
+            break; // EOF = End Of File. Quit the loop.
+        if ( strcmp( lineHeader, "v" ) == 0 ){
+             glm::vec3 vertex;
+             fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z );
+             temp_vertices.push_back(vertex);
+        } else if ( strcmp( lineHeader, "vt" ) == 0 ){
+             glm::vec2 uv;
+             fscanf(file, "%f %f\n", &uv.x, &uv.y );
+             temp_uvs.push_back(uv);
+        } else if ( strcmp( lineHeader, "vn" ) == 0 ){
+            glm::vec3 normal;
+            fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z );
+            temp_normals.push_back(normal);
+        } else if ( strcmp( lineHeader, "f" ) == 0 ){
+            std::string vertex1, vertex2, vertex3;
+            unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
+            int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2] );
+            if (matches != 9){
+            printf("File can't be read by our simple parser : ( Try exporting with other options\n");
+            return false;
+                                                    }
+            vertexIndices.push_back(vertexIndex[0]);
+            vertexIndices.push_back(vertexIndex[1]);
+            vertexIndices.push_back(vertexIndex[2]);
+            uvIndices    .push_back(uvIndex[0]);
+            uvIndices    .push_back(uvIndex[1]);
+            uvIndices    .push_back(uvIndex[2]);
+            normalIndices.push_back(normalIndex[0]);
+            normalIndices.push_back(normalIndex[1]);
+            normalIndices.push_back(normalIndex[2]);
+        }
+    }
+    // For each vertex of each triangle
+    for( unsigned int i=0; i<vertexIndices.size(); i++ ){
+        unsigned int vertexIndex = vertexIndices[i];
+        glm::vec3 vertex = temp_vertices[ vertexIndex-1 ];
+        out_vertices.push_back(vertex);
+    }
 }
