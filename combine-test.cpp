@@ -19,11 +19,12 @@
 #include <fstream>
 #include <streambuf>
 
-#define BG_ID 0
-#define FG_ID 1
-
 #define POS_ID 0
 #define TEX_ID 1
+
+#define POS_OBJ_ID 2
+
+#define COLOR_ID 3
 
 bool loadOBJ(
    const char * path,
@@ -116,18 +117,6 @@ int main()
     glewInit();
 
     // --- Application Specific Setup ---
-
-    // Read our .obj file
-    std::vector< glm::vec3 > obj_vertices;
-    std::vector< glm::vec2 > obj_uvs;
-    std::vector< glm::vec3 > obj_normals; // Won't be used at the moment.
-    bool res = loadOBJ("../model.obj", obj_vertices, obj_uvs, obj_normals);
-
-    GLuint obj_vao;
-    glGenVertexArrays(1, &obj_vao);
-    glBindVertexArray(obj_vao);
-    glBufferData(GL_ARRAY_BUFFER, obj_vertices.size() * sizeof(glm::vec3), &obj_vertices[0], GL_STATIC_DRAW);
-
     // Create FG Vertex Array Object
     GLuint fg_vao;
     glGenVertexArrays(1, &fg_vao);
@@ -181,9 +170,29 @@ int main()
     glVertexAttribPointer(POS_ID, 3, GL_FLOAT, GL_FALSE,
                  6*sizeof(GLfloat), 0);
 
-    glEnableVertexAttribArray(TEX_ID);
-    glVertexAttribPointer(TEX_ID, 3, GL_FLOAT, GL_FALSE,
+    glEnableVertexAttribArray(COLOR_ID);
+    glVertexAttribPointer(COLOR_ID, 3, GL_FLOAT, GL_FALSE,
                  6*sizeof(GLfloat), (void*)(3*sizeof(GLfloat)));
+
+
+    // Read our .obj file
+    std::vector< glm::vec3 > obj_vertices;
+    std::vector< glm::vec2 > obj_uvs;
+    std::vector< glm::vec3 > obj_normals; // Won't be used at the moment.
+    bool res = loadOBJ("../model.obj", obj_vertices, obj_uvs, obj_normals);
+
+    GLuint obj_vao;
+    glGenVertexArrays(1, &obj_vao);
+    glBindVertexArray(obj_vao);
+    
+    GLuint obj_vbo;
+    glGenBuffers(1, &obj_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, obj_vbo);
+    glBufferData(GL_ARRAY_BUFFER, obj_vertices.size() * sizeof(glm::vec3), &obj_vertices[0], GL_STATIC_DRAW);
+
+    //glEnableVertexAttribArray(POS_OBJ_ID);
+    //glVertexAttribPointer(POS_OBJ_ID, 3, GL_FLOAT, GL_FALSE,
+    //             sizeof(glm::vec3), 0);
 
 
     // Compile color vertex shader
@@ -197,8 +206,8 @@ int main()
     if(cvStatus != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(colorVert, 512, NULL, buffer);
-        std::cerr << buffer << std::endl;
-        return 3;
+        std::cerr << "colorvert shader: " << buffer << std::endl;
+        return 7;
     }
 
     // Compile color fragment shader
@@ -212,7 +221,7 @@ int main()
     if(cfStatus != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(colorFrag, 512, NULL, buffer);
-        std::cerr << buffer << std::endl;
+        std::cerr << "colorfrag shader: " << buffer << std::endl;
         return 4;
     }
 
@@ -227,8 +236,8 @@ int main()
     if(pvStatus != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(prettyVert, 512, NULL, buffer);
-        std::cerr << buffer << std::endl;
-        return 3;
+        std::cerr << "prettyvert shader: " << buffer << std::endl;
+        return 8;
     }
 
     // Compile pretty fragment shader
@@ -242,8 +251,8 @@ int main()
     if(pfStatus != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(prettyFrag, 512, NULL, buffer);
-        std::cerr << buffer << std::endl;
-        return 4;
+        std::cerr << "prettyfrag shader: " << buffer << std::endl;
+        return 7;
     }
 
     // Compile blank vertex shader
@@ -257,8 +266,8 @@ int main()
     if(bvStatus != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(blankVert, 512, NULL, buffer);
-        std::cerr << buffer << std::endl;
-        return 3;
+        std::cerr <<  "blankvert shader: " << buffer << std::endl;
+        return 9;
     }
 
     // Compile blank fragment shader
@@ -272,7 +281,37 @@ int main()
     if(bfStatus != GL_TRUE) {
         char buffer[512];
         glGetShaderInfoLog(blankFrag, 512, NULL, buffer);
-        std::cerr << buffer << std::endl;
+        std::cerr <<  "blankfrag shader: " << buffer << std::endl;
+        return 10;
+    }
+
+    // Compile notex vertex shader
+    GLuint notexVert = glCreateShader(GL_VERTEX_SHADER);
+    const char *nvSource = readFile("3dnotex.glsl").c_str();
+
+    glShaderSource(notexVert, 1, &nvSource, NULL);
+    glCompileShader(notexVert);
+    GLint nvStatus;
+    glGetShaderiv(notexVert, GL_COMPILE_STATUS, &nvStatus);
+    if(nvStatus != GL_TRUE) {
+        char buffer[512];
+        glGetShaderInfoLog(notexVert, 512, NULL, buffer);
+        std::cerr << "notexvert shader: " << buffer << std::endl;
+        return 6;
+    }
+
+    // Compile notex fragment shader
+    GLuint notexFrag = glCreateShader(GL_FRAGMENT_SHADER);
+    const char* nfSource = readFile("notexfrag.glsl").c_str();
+
+    glShaderSource(notexFrag, 1, &nfSource, NULL);
+    glCompileShader(notexFrag);
+    GLint nfStatus;
+    glGetShaderiv(notexFrag, GL_COMPILE_STATUS, &nfStatus);
+    if(nfStatus != GL_TRUE) {
+        char buffer[512];
+        glGetShaderInfoLog(notexFrag, 512, NULL, buffer);
+        std::cerr << "notexfrag shader: " << buffer << std::endl;
         return 5;
     }
 
@@ -300,6 +339,14 @@ int main()
     glLinkProgram(blankShaderProgram);
     glUseProgram(blankShaderProgram);
 
+    // Make notex shader program.
+    GLuint notexShaderProgram = glCreateProgram();
+    glAttachShader(notexShaderProgram, notexVert);
+    glAttachShader(notexShaderProgram, notexFrag);
+    glBindFragDataLocation(notexShaderProgram, 0, "outColor");
+    glLinkProgram(notexShaderProgram);
+    glUseProgram(notexShaderProgram);
+
     // Setup view
     glm::mat4 view = glm::lookAt(
                    glm::vec3( 1.0f,  1.0f,  1.0f),
@@ -320,6 +367,10 @@ int main()
     glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "view" ), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "proj" ), 1, GL_FALSE, glm::value_ptr(proj));
     glUniformMatrix4fv(glGetUniformLocation(blankShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+    glUniformMatrix4fv(glGetUniformLocation(notexShaderProgram, "view" ), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(notexShaderProgram, "proj" ), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(notexShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
     // Create texture
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -364,18 +415,6 @@ int main()
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(axis_vertices), axis_vertices);
         glDrawArrays(GL_LINES, 0, 6);
         glBindVertexArray(0);
-        
-        // Draw Axis
-        glUseProgram(blankShaderProgram);
-        model = glm::mat4();
-        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
-        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-        glBindVertexArray(obj_vao);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
-        
 
         // Draw Backboard
         glUseProgram(prettyShaderProgram);
@@ -399,6 +438,17 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
+        // Draw Object
+//        glUseProgram(notexShaderProgram);
+//        model = glm::mat4();
+//        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+//        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
+//        glUniformMatrix4fv(glGetUniformLocation(prettyShaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+//        glBindVertexArray(obj_vao);
+//        glDrawArrays(GL_TRIANGLES, 0, 6);
+//        glBindVertexArray(0);
+        
         //Display
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -472,7 +522,7 @@ bool loadOBJ(
             if (matches != 9){
             printf("File can't be read by our simple parser : ( Try exporting with other options\n");
             return false;
-                                                    }
+            }
             vertexIndices.push_back(vertexIndex[0]);
             vertexIndices.push_back(vertexIndex[1]);
             vertexIndices.push_back(vertexIndex[2]);
